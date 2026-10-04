@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>x-shots</title>
+<style>
+  :root {
+    --ui-bg: #0a0a0b;
+    --ui-panel: #111113;
+    --ui-raise: #1b1b1e;
+    --ui-raise-2: #2a2a2e;
+    --ui-fg: #ededef;
+    --ui-sec: #8e8e94;
+    --ui-line: rgb(255 255 255 / 0.08);
+    --ui-warn: #f5a524;
+    --hairline: 1px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    color-scheme: dark;
+  }
+  @media (min-resolution: 2dppx) { :root { --hairline: 0.5px } }
+
+  * { box-sizing: border-box }
+  body {
+    margin: 0; height: 100dvh; display: grid; grid-template-columns: 1fr 340px;
+    background: var(--ui-bg); color: var(--ui-fg);
+    font: 13px/1.4 system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; color: inherit }
+  :focus-visible { outline: 2px solid var(--ui-fg); outline-offset: 2px }
+
+  /* Stage */
+  .stage { position: relative; display: grid; place-items: center; overflow: hidden; min-width: 0 }
+  .stage.drop { box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.3) }
+  #canvas { display: block; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08); touch-action: none }
+  .hint { position: absolute; inset: auto 0 20px; margin: 0; text-align: center; color: var(--ui-sec); pointer-events: none }
+
+  /* Panel */
+  .panel { display: flex; flex-direction: column; min-height: 0; background: var(--ui-panel); border-left: var(--hairline) solid var(--ui-line) }
+  .scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain }
+  .top { padding: 16px 16px 12px }
+  .line { display: flex; gap: 8px }
+  .field {
+    flex: 1; min-width: 0; height: 32px; padding: 0 10px; border: 0; border-radius: 8px;
+    background: var(--ui-raise); box-shadow: inset 0 0 0 1px var(--ui-line);
+  }
+  .field::placeholder { color: var(--ui-sec) }
+  .btn {
+    height: 32px; padding: 0 14px; border: 0; border-radius: 8px; cursor: pointer; flex: none;
+    background: var(--ui-fg); color: var(--ui-bg); font-weight: 500;
+    transition: transform 160ms var(--ease-out);
+  }
+  .btn:active { transform: scale(0.97) }
+  .btn.ghost { background: var(--ui-raise-2); color: var(--ui-fg) }
+  .status { margin: 8px 0 0; font-size: 12px; color: var(--ui-sec); min-height: 1lh }
+  .status:empty { display: none }
+  .status.warn { color: var(--ui-warn) }
+
+  .sec { padding: 4px 16px 14px; border-top: var(--hairline) solid var(--ui-line) }
+  .sec > summary {
+    list-style: none; cursor: pointer; user-select: none; padding: 12px 0 8px;
+    font-size: 12px; font-weight: 600; display: flex; justify-content: space-between;
+  }
+  .sec > summary::after { content: "–"; color: var(--ui-sec) }
+  .sec:not([open]) > summary::after { content: "+" }
+  .sec:not([open]) { padding-bottom: 4px }
+
+  .row { display: flex; align-items: center; gap: 10px; min-height: 30px }
+  .row[inert] { opacity: 0.35 }
+  .lab { width: 78px; flex: none; color: var(--ui-sec); font-size: 12px; user-select: none; cursor: default }
+  .unit { width: 16px; flex: none; color: var(--ui-sec); font-size: 11px }
+  .num {
+    width: 38px; flex: none; padding: 2px 0; border: 0; border-radius: 4px; background: none; text-align: right;
+    font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+  }
+  .num:focus { background: var(--ui-raise) }
+  .num::-webkit-inner-spin-button, .num::-webkit-outer-spin-button { appearance: none; margin: 0 }
+
+  input[type="range"] { appearance: none; flex: 1; min-width: 0; height: 20px; margin: 0; background: none; cursor: pointer }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 3px; border-radius: 2px;
+    background: linear-gradient(to right, #c8c8cc var(--p, 0%), var(--ui-raise-2) var(--p, 0%));
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none; width: 12px; height: 12px; margin-top: -4.5px; border-radius: 50%; background: #fff;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+  }
+  input[type="range"]::-moz-range-track { height: 3px; border-radius: 2px; background: var(--ui-raise-2) }
+  input[type="range"]::-moz-range-progress { height: 3px; border-radius: 2px; background: #c8c8cc }
+  input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff }
+
+  input[type="color"] { appearance: none; width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; flex: none }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 0 }
+  input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 6px; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12) }
+  input[type="color"]::-moz-color-swatch { border: 0; border-radius: 6px }
+  .hex { color: var(--ui-sec); font-size: 12px; font-variant-numeric: tabular-nums; text-transform: uppercase }
+
+  .seg { display: inline-flex; flex: 1; padding: 2px; border-radius: 8px; background: var(--ui-raise) }
+  .seg button {
+    flex: 1; height: 24px; padding: 0 6px; border: 0; border-radius: 6px; /* 8 − 2 padding */
+    background: none; color: var(--ui-sec); font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .seg button[aria-pressed="true"] { background: var(--ui-raise-2); color: var(--ui-fg) }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; padding: 3px 0 }
+  .chip {
+    height: 24px; padding: 0 10px; border: 0; border-radius: 999px; cursor: pointer;
+    background: var(--ui-raise); color: var(--ui-sec); font-size: 12px;
+  }
+  .chip[aria-pressed="true"] { background: var(--ui-fg); color: var(--ui-bg) }
+
+  .rail { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 10px }
+  .tile {
+    width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; cursor: pointer;
+    background: var(--ui-raise) center / cover; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+    display: grid; place-items: center; color: var(--ui-sec); font-size: 18px;
+  }
+  .tile[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ui-panel), 0 0 0 3.5px var(--ui-fg) }
+
+  .export { padding: 12px 16px 16px; border-top: var(--hairline) solid var(--ui-line) }
+  .export .line { margin-top: 8px }
+  .export .btn { flex: 1 }
+  .dims { width: 92px; flex: none; text-align: right; color: var(--ui-sec); font-size: 12px; font-variant-numeric: tabular-nums }
+
+  /* Hidden host where the card is laid out before it is turned into an image */
+  .offscreen { position: fixed; left: -100000px; top: 0 }
+
+  /* The post card (X colours per theme) */
+  .post {
+    --bg: #fff; --fg: #0f1419; --sec: #536471; --line: #eff3f4; --link: #1d9bf0;
+    background: var(--bg); color: var(--fg);
+    font: 400 calc(var(--text) * 0.88)/1.33 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji";
+    -webkit-font-smoothing: antialiased;
+  }
+  .post[data-theme="dim"] { --bg: #15202b; --fg: #f7f9f9; --sec: #8b98a5; --line: #38444d }
+  .post[data-theme="dark"] { --bg: #000; --fg: #e7e9ea; --sec: #71767b; --line: #2f3336 }
+  .post * { margin: 0 }
+  .post .head { display: flex; align-items: center; gap: 0.8em }
+  .post .avatar { width: 2.67em; height: 2.67em; border-radius: 50%; flex: none }
+  .post .name { display: inline-flex; align-items: center; gap: 0.25em; font-weight: 700 }
+  .post .badge { width: 1.25em; height: 1.25em; flex: none }
+  .post .muted { color: var(--sec) }
+  .post .link { color: var(--link) }
+  .post .reply { margin-top: 0.8em }
+  .post .text { margin-top: 0.75em; font-size: var(--text); line-height: 1.41; white-space: pre-wrap; overflow-wrap: anywhere }
+  .post .media { display: grid; gap: 2px; margin-top: 0.8em; border: 1px solid var(--line); border-radius: 16px; overflow: hidden }
+  .post .n2 { grid-template-columns: 1fr 1fr }
+  .post .n3, .post .n4 { grid-template: 1fr 1fr / 1fr 1fr }
+  .post .n3 .cell:first-child { grid-row: span 2 }
+  .post .cell { position: relative; min-height: 0 }
+  .post .cell img { display: block; width: 100%; height: 100%; object-fit: cover }
+  .post .play {
+    position: absolute; inset: 0; margin: auto; width: 3.4em; height: 3.4em; border-radius: 50%;
+    display: grid; place-items: center; background: var(--link); box-shadow: 0 0 0 3px #fff;
+  }
+  .post .play svg { width: 1.5em; fill: #fff; margin-left: 0.15em }
+  .post .quote { margin-top: 0.8em; padding: 0.8em; border: 1px solid var(--line); border-radius: 16px; overflow: hidden }
+  .post .q-head { display: flex; align-items: center; gap: 0.3em; white-space: nowrap; overflow: hidden }
+  .post .q-avatar { width: 1.4em; height: 1.4em; border-radius: 50%; flex: none; margin-right: 0.1em }
+  .post .q-text {
+    margin-top: 0.3em; white-space: pre-wrap; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 8; overflow: hidden;
+  }
+  /* Quoted media runs edge to edge, clipped by the quote's own radius */
+  .post .quote .media { margin: 0.8em -0.8em -0.8em; border: 0; border-top: 1px solid var(--line); border-radius: 0 }
+  .post .note { margin-top: 0.8em; padding: 0.8em; border: 1px solid var(--line); border-radius: 16px }
+  .post .note b { display: block; margin-bottom: 0.25em }
+  .post .meta { margin-top: 1em }
+  .post .meta b { color: var(--fg) }
+  .post .metrics { display: flex; justify-content: space-between; margin-top: 0.8em; padding: 0.8em 0.2em 0; border-top: 1px solid var(--line); color: var(--sec) }
+  .post .metrics.few { justify-content: flex-start; gap: 2.4em }
+  .post .metrics span { display: inline-flex; align-items: center; gap: 0.35em }
+  .post .metrics svg { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+</style>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <canvas id="canvas" role="img" aria-label="Frame preview"></canvas>
+    <p class="hint" id="hint">Paste an X post link to start. Drop an image here to use it as the backdrop.</p>
+  </main>
+
+  <aside class="panel">
+    <div class="scroll">
+      <div class="top">
+        <form class="line" id="load">
+          <input class="field" id="url" placeholder="Paste an X post link" autocomplete="off" spellcheck="false" aria-label="X post link">
+          <button class="btn">Load</button>
+        </form>
+        <p class="status" id="status" role="status"></p>
+      </div>
+      <div id="controls"></div>
+      <details class="sec" open>
+        <summary>Looks</summary>
+        <div class="chips" id="presets"></div>
+        <form class="line" id="save" style="margin-top: 8px">
+          <input class="field" id="preset-name" placeholder="Name this look" autocomplete="off" aria-label="Look name">
+          <button class="btn ghost">Save</button>
+        </form>
+        <p class="status" id="preset-status" role="status"></p>
+      </details>
+    </div>
+    <footer class="export">
+      <div class="row">
+        <span class="lab">Scale</span>
+        <div class="seg" role="group" aria-label="Export scale">
+          <button type="button" data-key="scale" data-value="1">1×</button>
+          <button type="button" data-key="scale" data-value="2">2×</button>
+          <button type="button" data-key="scale" data-value="3">3×</button>
+        </div>
+        <span class="dims" id="dims"></span>
+      </div>
+      <div class="line">
+        <button class="btn" id="copy" type="button">Copy PNG</button>
+        <button class="btn ghost" id="download" type="button">Download</button>
+      </div>
+      <p class="status" id="export-status" role="status"></p>
+    </footer>
+  </aside>
+
+  <div class="offscreen" id="offscreen" aria-hidden="true"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

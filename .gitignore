@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+
+# Personal uploads and looks stay local. Only the Default Template ships.
+backdrops/*
+!backdrops/default-template.jpg
+presets/*
+!presets/Default Template.json
