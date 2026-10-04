@@ -5,4 +5,5 @@ node_modules/
 backdrops/*
 !backdrops/default-template.jpg
 presets/*
+shots/
 !presets/Default Template.json

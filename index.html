@@ -46,6 +46,7 @@
   }
   .field::placeholder { color: var(--ui-sec) }
   .btn {
+    display: inline-flex; align-items: center; justify-content: center;
     height: 32px; padding: 0 14px; border: 0; border-radius: 8px; cursor: pointer; flex: none;
     background: var(--ui-fg); color: var(--ui-bg); font-weight: 500;
     transition: transform 160ms var(--ease-out);
@@ -115,6 +116,7 @@
     background: var(--ui-raise) center / cover; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
     display: grid; place-items: center; color: var(--ui-sec); font-size: 18px;
   }
+  .rail.drop { box-shadow: 0 0 0 1px rgb(255 255 255 / 0.3); border-radius: 10px }
   .tile[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ui-panel), 0 0 0 3.5px var(--ui-fg) }
 
   .export { padding: 12px 16px 16px; border-top: var(--hairline) solid var(--ui-line) }
@@ -176,7 +178,7 @@
 <body>
   <main class="stage" id="stage">
     <canvas id="canvas" role="img" aria-label="Frame preview"></canvas>
-    <p class="hint" id="hint">Paste an X post link to start. Drop an image here to use it as the backdrop.</p>
+    <p class="hint" id="hint">Paste an X post link or an image to start. Drop an image on Backdrop to use it as the backdrop.</p>
   </main>
 
   <aside class="panel">
@@ -185,6 +187,7 @@
         <form class="line" id="load">
           <input class="field" id="url" placeholder="Paste an X post link" autocomplete="off" spellcheck="false" aria-label="X post link">
           <button class="btn">Load</button>
+          <label class="btn ghost" title="Frame an image instead of a post">Image<input type="file" id="shot-file" accept="image/*" hidden></label>
         </form>
         <p class="status" id="status" role="status"></p>
       </div>
