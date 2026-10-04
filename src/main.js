@@ -94,7 +94,7 @@ const say = (sel, msg = '', warn = false) => { const el = $(sel); el.textContent
 function set(patch) {
   Object.assign(state, patch)
   syncControls()
-  dials.sync()
+  if (dials) dials.sync()
   persist()
   if ('bg' in patch) loadBg().then(requestDraw)
   if (Object.keys(patch).some(k => CARD_KEYS.includes(k))) refreshCard()
@@ -127,7 +127,8 @@ const sliders = Object.fromEntries(CONTROLS.filter(c => c.type === 'range').map(
   return [c.key, { props, ui: mountSlider($(`[data-slider="${c.key}"]`), props) }]
 }))
 
-const dials = mountDials({
+// The DialKit popover that mirrors every dial is off by default. Open the page with ?dials to get it.
+const dials = new URLSearchParams(location.search).has('dials') && mountDials({
   panel: PANEL,
   defaults: DEFAULTS,
   state,
@@ -283,7 +284,7 @@ async function loadLibrary() {
     ...lib.backdrops.map(p => `<button type="button" class="tile" data-bg="${esc(p)}" style="background-image:url('${esc(p)}')" title="${esc(p.split('/').pop())}" aria-label="Backdrop ${esc(p.split('/').pop())}"></button>`),
     '<label class="tile" title="Upload an image" aria-label="Upload an image">+<input type="file" accept="image/*" hidden></label>',
   ].join('')
-  dials.setBackdrops(lib.backdrops)
+  if (dials) dials.setBackdrops(lib.backdrops)
   presets = lib.presets
   $('#presets').innerHTML = presets.map((p, i) => `<button type="button" class="chip" data-preset="${i}">${esc(p.name)}</button>`).join('') || '<span class="status">No saved looks yet.</span>'
   syncControls()

@@ -18,7 +18,7 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 - To add a backdrop, drop an image on the Backdrop rail or click its **+** tile. Backdrops go to `backdrops/`.
 - While an image is the subject, the post-only controls (theme, text size, padding, show and count toggles) are off.
 - Drag the card on the preview to move it. It snaps to the centre.
-- Click the dials button at the top left of the preview to open DialKit. It has every control from the side panel, and the two stay in sync. Position, pan and shadow offset are dial pads.
+- Open the page with `?dials` (http://localhost:5190/?dials) to get a DialKit popover with every control from the side panel. The two stay in sync. Position, pan and shadow offset are dial pads.
 - The sliders are DialKit sliders. Drag anywhere on the bar, or hover the value and type one.
 - Double-click a slider, or a control's label, to reset it.
 - Type a name under **Looks** and click Save. The look goes to `presets/<name>.json`. Click a saved look to apply it.
