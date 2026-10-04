@@ -3,9 +3,10 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 const IMAGE = /^\.(jpe?g|png|webp|gif|avif)$/i
+const UPLOAD_DIRS = ['backdrops', 'shots']
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled'
 
-// Local save endpoints: uploads land in backdrops/, looks in presets/*.json.
+// Local save endpoints: backdrops/ and shots/ (framed images) for uploads, presets/*.json for looks.
 function library() {
   return {
     name: 'x-shots-library',
@@ -20,8 +21,7 @@ function library() {
           res.end(JSON.stringify(body))
         }
         try {
-          await fs.mkdir(dir('backdrops'), { recursive: true })
-          await fs.mkdir(dir('presets'), { recursive: true })
+          for (const d of [...UPLOAD_DIRS, 'presets']) await fs.mkdir(dir(d), { recursive: true })
 
           if (req.method === 'GET' && url.pathname === '/library') {
             const backdrops = (await fs.readdir(dir('backdrops')))
@@ -37,12 +37,14 @@ function library() {
 
           if (req.method === 'POST') {
             const body = Buffer.concat(await Array.fromAsync(req))
-            if (url.pathname === '/backdrop') {
+            if (url.pathname === '/upload') {
+              const to = url.searchParams.get('dir')
               const ext = path.extname(name).toLowerCase()
+              if (!UPLOAD_DIRS.includes(to)) return send(400, { error: 'Unknown upload folder.' })
               if (!IMAGE.test(ext)) return send(400, { error: 'Use a JPG, PNG, WebP, GIF or AVIF image.' })
               const file = `${slug(path.basename(name, ext))}-${Date.now().toString(36)}${ext}`
-              await fs.writeFile(path.join(dir('backdrops'), file), body)
-              return send(200, { path: `/backdrops/${file}` })
+              await fs.writeFile(path.join(dir(to), file), body)
+              return send(200, { path: `/${to}/${file}` })
             }
             if (url.pathname === '/preset') {
               JSON.parse(body) // refuse anything that is not JSON
@@ -64,7 +66,7 @@ export default defineConfig({
   plugins: [library()],
   server: {
     port: 5190,
-    watch: { ignored: ['**/backdrops/**'] },
+    watch: { ignored: ['**/backdrops/**', '**/shots/**'] },
     // X's embed feed only allows its own origin, so the fallback goes through here.
     proxy: {
       '/x-syndication': {

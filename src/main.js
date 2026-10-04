@@ -10,20 +10,21 @@ const BG_KEYS = ['g1', 'g2', 'gAngle', 'blur', 'brightness', 'contrast', 'satura
 const range = (key, label, min, max, unit = '', when) => ({ type: 'range', key, label, min, max, unit, when })
 const seg = (key, label, options, when) => ({ type: 'seg', key, label, options, when })
 const color = (key, label, when) => ({ type: 'color', key, label, when })
-const toggles = (label, items) => ({ type: 'toggles', label, items })
+const toggles = (label, items, when) => ({ type: 'toggles', label, items, when })
 const isImage = s => !!s.bg
 const isGradient = s => !s.bg
 const isFixed = s => s.aspect !== 'auto'
+const isPost = () => !shot // post-only rows grey out while an image is the subject
 
 const PANEL = [
   ['Card', [
-    seg('theme', 'Theme', [['light', 'Light'], ['dim', 'Dim'], ['dark', 'Lights out']]),
+    seg('theme', 'Theme', [['light', 'Light'], ['dim', 'Dim'], ['dark', 'Lights out']], isPost),
     range('cardWidth', 'Width', 420, 720, 'px'),
-    range('textSize', 'Text size', 14, 24, 'px'),
-    range('cardPad', 'Padding', 12, 40, 'px'),
+    range('textSize', 'Text size', 14, 24, 'px', isPost),
+    range('cardPad', 'Padding', 12, 40, 'px', isPost),
     range('radius', 'Radius', 0, 48, 'px'),
-    toggles('Show', [['showReply', 'Replying to'], ['showQuote', 'Quote'], ['showNote', 'Note'], ['showDate', 'Date'], ['showMetrics', 'Metrics']]),
-    toggles('Counts', [['mReplies', 'Replies'], ['mReposts', 'Reposts'], ['mLikes', 'Likes'], ['mBookmarks', 'Bookmarks'], ['mViews', 'Views']]),
+    toggles('Show', [['showReply', 'Replying to'], ['showQuote', 'Quote'], ['showNote', 'Note'], ['showDate', 'Date'], ['showMetrics', 'Metrics']], isPost),
+    toggles('Counts', [['mReplies', 'Replies'], ['mReposts', 'Reposts'], ['mLikes', 'Likes'], ['mBookmarks', 'Bookmarks'], ['mViews', 'Views']], isPost),
   ]],
   ['Frame', [
     seg('aspect', 'Aspect', ['16:9', '1:1', '4:5', '9:16', 'auto'].map(a => [a, a === 'auto' ? 'Auto' : a])),
@@ -78,10 +79,12 @@ const STORE = 'x-shots'
 let saved = {}
 try { saved = JSON.parse(localStorage.getItem(STORE)) ?? {} } catch {}
 const state = { ...DEFAULTS, ...saved.state }
-let url = saved.url ?? ''
+// What the card shows: { kind: 'x', url } or { kind: 'image', src }.
+let subject = saved.subject ?? (saved.url ? { kind: 'x', url: saved.url } : null)
 let post = null
+let shot = null
 let presets = []
-const persist = () => { try { localStorage.setItem(STORE, JSON.stringify({ state, url })) } catch {} }
+const persist = () => { try { localStorage.setItem(STORE, JSON.stringify({ state, subject })) } catch {} }
 const say = (sel, msg = '', warn = false) => { const el = $(sel); el.textContent = msg; el.classList.toggle('warn', warn) }
 
 function set(patch) {
@@ -106,7 +109,7 @@ function controlHTML(c) {
     case 'seg':
       return row(`<span class="lab" data-reset="${c.key}">${c.label}</span><div class="seg" role="group" aria-label="${c.label}">${c.options.map(([v, t]) => `<button type="button" data-key="${c.key}" data-value="${v}">${t}</button>`).join('')}</div>`)
     case 'toggles':
-      return `<div class="row"><span class="lab">${c.label}</span><div class="chips">${c.items.map(([k, t]) => `<button type="button" class="chip" data-key="${k}" data-toggle>${t}</button>`).join('')}</div></div>`
+      return `<div class="row" data-row="${c.label}"><span class="lab">${c.label}</span><div class="chips">${c.items.map(([k, t]) => `<button type="button" class="chip" data-key="${k}" data-toggle>${t}</button>`).join('')}</div></div>`
     case 'backdrops':
       return '<div class="rail" id="backdrops"></div>'
   }
@@ -121,7 +124,7 @@ function syncControls() {
     if (el.type === 'range') el.style.setProperty('--p', `${((v - el.min) / (el.max - el.min)) * 100}%`)
   }
   for (const el of document.querySelectorAll('[data-hex]')) el.textContent = state[el.dataset.hex]
-  for (const c of CONTROLS) if (c.when) $(`[data-row="${c.key}"]`).inert = !c.when(state)
+  for (const c of CONTROLS) if (c.when) $(`[data-row="${c.key ?? c.label}"]`).inert = !c.when(state)
   for (const t of document.querySelectorAll('.tile[data-bg]')) t.setAttribute('aria-pressed', t.dataset.bg === state.bg)
   const g = $('.tile[data-bg=""]')
   if (g) g.style.backgroundImage = `linear-gradient(${state.gAngle}deg, ${state.g1}, ${state.g2})`
@@ -164,8 +167,10 @@ async function loadPost(input) {
   try {
     const r = await fetchPost(id)
     post = r.post
-    url = input.trim()
+    shot = null
+    subject = { kind: 'x', url: input.trim() }
     persist()
+    syncControls()
     say('#status', r.source === 'x' ? 'FxTwitter did not respond, so this came from X’s own feed. Reposts, bookmarks, views and notes are not available.' : '', r.source === 'x')
     refreshCard()
   } catch (e) {
@@ -175,8 +180,27 @@ async function loadPost(input) {
 $('#load').addEventListener('submit', e => { e.preventDefault(); loadPost($('#url').value) })
 $('#url').addEventListener('paste', () => setTimeout(() => loadPost($('#url').value)))
 
-// The card is laid out as HTML off screen, then turned into an image for the canvas.
+async function loadShot(src) {
+  const img = new Image()
+  img.src = src
+  try {
+    await img.decode()
+  } catch {
+    return say('#status', `Could not open ${src.slice(1)}.`, true)
+  }
+  shot = img
+  post = null
+  subject = { kind: 'image', src }
+  persist()
+  say('#status', '')
+  syncControls()
+  refreshCard()
+}
+
+// A post is laid out as HTML off screen, then turned into an image for the canvas.
+// An image is used as is, at the card width.
 async function rasterCard(scale) {
+  if (shot) return { canvas: shot, w: state.cardWidth, h: (state.cardWidth * shot.naturalHeight) / shot.naturalWidth }
   const host = document.createElement('div')
   host.innerHTML = cardHTML(post, state)
   $('#offscreen').append(host)
@@ -192,7 +216,7 @@ async function rasterCard(scale) {
 let rastering = false
 let rasterAgain = false
 async function refreshCard() {
-  if (!post) return requestDraw()
+  if (!post && !shot) return requestDraw()
   if (rastering) return void (rasterAgain = true)
   rastering = true
   try {
@@ -222,15 +246,24 @@ async function loadBg() {
   if (state.bg === src) bgImage = img
 }
 
-async function upload(file) {
-  say('#status', 'Saving backdrop…')
-  const r = await fetch(`/api/backdrop?name=${encodeURIComponent(file.name || 'pasted.png')}`, { method: 'POST', body: file })
+// dir is 'backdrops' or 'shots'. Returns the saved path, or nothing on failure.
+async function upload(file, dir) {
+  say('#status', 'Saving image…')
+  const r = await fetch(`/api/upload?dir=${dir}&name=${encodeURIComponent(file.name || 'pasted.png')}`, { method: 'POST', body: file })
   const j = await r.json()
   if (!r.ok) return say('#status', j.error, true)
   say('#status', `Saved ${j.path.slice(1)}`)
-  await loadLibrary()
-  set({ bg: j.path })
+  return j.path
 }
+const addBackdrop = async file => {
+  const path = await upload(file, 'backdrops')
+  if (path) { await loadLibrary(); set({ bg: path }) }
+}
+const addShot = async file => {
+  const path = await upload(file, 'shots')
+  if (path) loadShot(path)
+}
+const firstImage = files => [...files].find(f => f.type.startsWith('image/'))
 
 async function loadLibrary() {
   const lib = await fetch('/api/library').then(r => r.json()).catch(() => ({ backdrops: [], presets: [] }))
@@ -243,20 +276,24 @@ async function loadLibrary() {
   $('#presets').innerHTML = presets.map((p, i) => `<button type="button" class="chip" data-preset="${i}">${esc(p.name)}</button>`).join('') || '<span class="status">No saved looks yet.</span>'
   syncControls()
 }
-$('#controls').addEventListener('change', e => { if (e.target.type === 'file' && e.target.files[0]) upload(e.target.files[0]) })
+$('#controls').addEventListener('change', e => { if (e.target.type === 'file' && e.target.files[0]) addBackdrop(e.target.files[0]) })
+$('#shot-file').addEventListener('change', e => { if (e.target.files[0]) addShot(e.target.files[0]) })
 
-stage.addEventListener('dragover', e => { e.preventDefault(); stage.classList.add('drop') })
-stage.addEventListener('dragleave', e => { if (!stage.contains(e.relatedTarget)) stage.classList.remove('drop') })
-stage.addEventListener('drop', e => {
-  e.preventDefault()
-  stage.classList.remove('drop')
-  const f = [...e.dataTransfer.files].find(f => f.type.startsWith('image/'))
-  if (f) upload(f)
-})
+// Drop where the image goes: on the preview it becomes the subject, on the Backdrop rail the backdrop.
+for (const [zone, add] of [[stage, addShot], [$('#backdrops'), addBackdrop]]) {
+  zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('drop') })
+  zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drop') })
+  zone.addEventListener('drop', e => {
+    e.preventDefault()
+    zone.classList.remove('drop')
+    const f = firstImage(e.dataTransfer.files)
+    if (f) add(f)
+  })
+}
 document.addEventListener('paste', e => {
   if (e.target.closest?.('input')) return
-  const f = [...e.clipboardData.files].find(f => f.type.startsWith('image/'))
-  if (f) return upload(f)
+  const f = firstImage(e.clipboardData.files)
+  if (f) return addShot(f)
   const text = e.clipboardData.getData('text')
   if (parseId(text)) { $('#url').value = text; loadPost(text) }
 })
@@ -524,7 +561,7 @@ canvas.addEventListener('pointerdown', e => {
 async function exportPNG() {
   const [W, H] = frameSize()
   const k = state.scale
-  const card = post && (await rasterCard(layout(W, H).s * k))
+  const card = (post || shot) && (await rasterCard(layout(W, H).s * k))
   const out = canvasOf(W * k, H * k)
   const bg = renderBackdrop(W, H, k)
   compose(out.getContext('2d'), W, H, k, bg, state.rim ? blurred(bg, state.rimBlur * k) : null, card)
@@ -554,7 +591,7 @@ $('#download').addEventListener('click', async () => {
   const blob = await exportPNG()
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `x-${post?.author.handle ?? 'frame'}-${post?.id ?? Date.now()}.png`
+  a.download = post ? `x-${post.author.handle}-${post.id}.png` : `shot-${Date.now()}.png`
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
   report(blob, 'Downloaded')
@@ -562,9 +599,9 @@ $('#download').addEventListener('click', async () => {
 
 // ---------- start ----------
 
-$('#url').value = url
 syncControls()
 new ResizeObserver(requestDraw).observe(stage)
 loadBg().then(requestDraw)
 loadLibrary()
-if (url) loadPost(url)
+if (subject?.kind === 'x') { $('#url').value = subject.url; loadPost(subject.url) }
+if (subject?.kind === 'image') loadShot(subject.src)

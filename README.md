@@ -1,6 +1,6 @@
 # x-shots
 
-Framed screenshots of X posts. Paste a post link, pick a backdrop, tune the card, export a PNG.
+Framed screenshots of X posts, or of any image. Paste a post link or an image, pick a backdrop, tune the card, export a PNG.
 
 ## Run
 
@@ -14,7 +14,9 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 ## Use
 
 - Paste an X post link in the top field. Pasting anywhere on the page also works.
-- Drop or paste an image on the preview to add it as a backdrop. Uploads go to `backdrops/`.
+- To frame an image instead of a post, paste it anywhere, drop it on the preview, or click **Image**. Images go to `shots/`.
+- To add a backdrop, drop an image on the Backdrop rail or click its **+** tile. Backdrops go to `backdrops/`.
+- While an image is the subject, the post-only controls (theme, text size, padding, show and count toggles) are off.
 - Drag the card on the preview to move it. It snaps to the centre.
 - Double-click a control's label to reset it.
 - Type a name under **Looks** and click Save. The look goes to `presets/<name>.json`. Click a saved look to apply it.
@@ -28,7 +30,8 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 - `src/post.js` gets the post from the FxTwitter API. If that fails, it uses X's embed feed through the dev-server proxy (`vite.config.js`). That feed has likes and replies only.
 - The card is HTML (`src/post.js`, styled by `.post` in `index.html`). modern-screenshot turns it into an image.
 - `src/main.js` stacks backdrop, shadow, glass rim and card on a canvas. The preview and the export use the same code, so the export matches the preview.
-- `vite.config.js` also has the local save endpoints for `backdrops/` and `presets/`.
+- An image subject skips the HTML step. The canvas draws its own pixels at the card width.
+- `vite.config.js` also has the local save endpoints for `backdrops/`, `shots/` and `presets/`.
 
 ## Known limits
 
