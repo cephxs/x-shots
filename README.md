@@ -18,6 +18,8 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 - Drag the card on the preview to move it. It snaps to the centre.
 - Double-click a control's label to reset it.
 - Type a name under **Looks** and click Save. The look goes to `presets/<name>.json`. Click a saved look to apply it.
+- `presets/Default Template.json` is the default for every control. Save over "Default Template" to change the defaults.
+- Git ignores your own uploads and looks. Only the Default Template and its backdrop are in the repo.
 - **Copy PNG** puts the image on the clipboard for the X composer. **Download** saves the file.
 - X can recompress or refuse images over 5 MB. The export line shows the size. Grain makes PNGs much larger, because noise does not compress.
 

@@ -1,24 +1,8 @@
 import { domToCanvas } from 'modern-screenshot'
 import { parseId, fetchPost, cardHTML, esc } from './post.js'
+// The Default Template look is the default for every control. bg '' means gradient.
+import DEFAULTS from '../presets/Default Template.json'
 
-const DEFAULTS = {
-  // card
-  theme: 'dark', cardWidth: 560, textSize: 17, cardPad: 20, radius: 20,
-  showReply: true, showQuote: true, showNote: true, showDate: true, showMetrics: true,
-  mReplies: true, mReposts: true, mLikes: true, mBookmarks: true, mViews: true,
-  // frame
-  aspect: '16:9', size: 85, x: 0, y: 0, autoPad: 96,
-  // backdrop ('' = gradient)
-  bg: '', g1: '#3a1c71', g2: '#ffaf7b', gAngle: 135,
-  blur: 0, brightness: 100, contrast: 100, saturate: 100, zoom: 100, panX: 0, panY: 0,
-  tint: '#000000', tintAmt: 0, grain: 0,
-  // glass rim
-  rim: 12, rimBlur: 24, rimColor: '#ffffff', rimOpacity: 14, rimEdge: 24,
-  // shadow
-  shColor: '#000000', shOpacity: 35, shBlur: 60, shX: 0, shY: 24, shSpread: 0,
-  // export
-  scale: 2,
-}
 const FRAMES = { '16:9': [1600, 900], '1:1': [1200, 1200], '4:5': [1080, 1350], '9:16': [1080, 1920] }
 const CARD_KEYS = ['theme', 'cardWidth', 'textSize', 'cardPad', 'showReply', 'showQuote', 'showNote', 'showDate', 'showMetrics', 'mReplies', 'mReposts', 'mLikes', 'mBookmarks', 'mViews']
 const BG_KEYS = ['g1', 'g2', 'gAngle', 'blur', 'brightness', 'contrast', 'saturate', 'zoom', 'panX', 'panY', 'tint', 'tintAmt', 'grain']

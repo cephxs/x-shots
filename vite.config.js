@@ -46,7 +46,7 @@ function library() {
             }
             if (url.pathname === '/preset') {
               JSON.parse(body) // refuse anything that is not JSON
-              const file = `${slug(name)}.json`
+              const file = `${name.replace(/[^\w .-]/g, '').trim() || 'untitled'}.json` // keep the name as typed
               await fs.writeFile(path.join(dir('presets'), file), body)
               return send(200, { path: `presets/${file}` })
             }
@@ -64,7 +64,7 @@ export default defineConfig({
   plugins: [library()],
   server: {
     port: 5190,
-    watch: { ignored: ['**/backdrops/**', '**/presets/**'] },
+    watch: { ignored: ['**/backdrops/**'] },
     // X's embed feed only allows its own origin, so the fallback goes through here.
     proxy: {
       '/x-syndication': {
