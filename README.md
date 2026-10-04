@@ -18,6 +18,7 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 - To add a backdrop, drop an image on the Backdrop rail or click its **+** tile. Backdrops go to `backdrops/`.
 - While an image is the subject, the post-only controls (theme, text size, padding, show and count toggles) are off.
 - Drag the card on the preview to move it. It snaps to the centre.
+- Click the dials button at the top left of the preview to open DialKit. It has every control from the side panel, and the two stay in sync. Position, pan and shadow offset are dial pads.
 - Double-click a control's label to reset it.
 - Type a name under **Looks** and click Save. The look goes to `presets/<name>.json`. Click a saved look to apply it.
 - `presets/Default Template.json` is the default for every control. Save over "Default Template" to change the defaults.
@@ -30,6 +31,7 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 - `src/post.js` gets the post from the FxTwitter API. If that fails, it uses X's embed feed through the dev-server proxy (`vite.config.js`). That feed has likes and replies only.
 - The card is HTML (`src/post.js`, styled by `.post` in `index.html`). modern-screenshot turns it into an image.
 - `src/main.js` stacks backdrop, shadow, glass rim and card on a canvas. The preview and the export use the same code, so the export matches the preview.
+- `src/dials.js` builds the DialKit panel (`dialkit/vanilla`, version 2) from the same control list as the side panel. App state stays the one store. DialKit saves nothing of its own.
 - An image subject skips the HTML step. The canvas draws its own pixels at the card width.
 - `vite.config.js` also has the local save endpoints for `backdrops/`, `shots/` and `presets/`.
 
