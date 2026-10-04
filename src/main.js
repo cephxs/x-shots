@@ -1,5 +1,6 @@
 import { domToCanvas } from 'modern-screenshot'
 import { parseId, fetchPost, cardHTML, esc } from './post.js'
+import { mountDials } from './dials.js'
 // The Default Template look is the default for every control. bg '' means gradient.
 import DEFAULTS from '../presets/Default Template.json'
 
@@ -92,6 +93,7 @@ const say = (sel, msg = '', warn = false) => { const el = $(sel); el.textContent
 function set(patch) {
   Object.assign(state, patch)
   syncControls()
+  dials.sync()
   persist()
   if ('bg' in patch) loadBg().then(requestDraw)
   if (Object.keys(patch).some(k => CARD_KEYS.includes(k))) refreshCard()
@@ -117,6 +119,17 @@ function controlHTML(c) {
   }
 }
 $('#controls').innerHTML = PANEL.map(([title, items]) => `<details class="sec" open><summary>${title}</summary>${items.map(controlHTML).join('')}</details>`).join('')
+
+const dials = mountDials({
+  panel: PANEL,
+  defaults: DEFAULTS,
+  state,
+  set,
+  onUpload: async dataUrl => {
+    const blob = await fetch(dataUrl).then(r => r.blob())
+    addBackdrop(new File([blob], `dial-upload.${blob.type.split('/')[1] || 'png'}`, { type: blob.type }))
+  },
+})
 
 function syncControls() {
   for (const el of document.querySelectorAll('[data-key]')) {
@@ -269,6 +282,7 @@ async function loadLibrary() {
     ...lib.backdrops.map(p => `<button type="button" class="tile" data-bg="${esc(p)}" style="background-image:url('${esc(p)}')" title="${esc(p.split('/').pop())}" aria-label="Backdrop ${esc(p.split('/').pop())}"></button>`),
     '<label class="tile" title="Upload an image" aria-label="Upload an image">+<input type="file" accept="image/*" hidden></label>',
   ].join('')
+  dials.setBackdrops(lib.backdrops)
   presets = lib.presets
   $('#presets').innerHTML = presets.map((p, i) => `<button type="button" class="chip" data-preset="${i}">${esc(p.name)}</button>`).join('') || '<span class="status">No saved looks yet.</span>'
   syncControls()
