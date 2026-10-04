@@ -19,7 +19,8 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 - While an image is the subject, the post-only controls (theme, text size, padding, show and count toggles) are off.
 - Drag the card on the preview to move it. It snaps to the centre.
 - Click the dials button at the top left of the preview to open DialKit. It has every control from the side panel, and the two stay in sync. Position, pan and shadow offset are dial pads.
-- Double-click a control's label to reset it.
+- The sliders are DialKit sliders. Drag anywhere on the bar, or hover the value and type one.
+- Double-click a slider, or a control's label, to reset it.
 - Type a name under **Looks** and click Save. The look goes to `presets/<name>.json`. Click a saved look to apply it.
 - `presets/Default Template.json` is the default for every control. Save over "Default Template" to change the defaults.
 - Git ignores your own uploads and looks. Only the Default Template and its backdrop are in the repo.
