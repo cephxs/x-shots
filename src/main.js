@@ -85,6 +85,8 @@ let post = null
 let shot = null
 let presets = []
 const persist = () => { try { localStorage.setItem(STORE, JSON.stringify({ state, subject })) } catch {} }
+// The load event fires even in a hidden tab. img.decode() waits for a rendered frame.
+const loadImage = src => new Promise((res, rej) => Object.assign(new Image(), { onload: e => res(e.target), onerror: rej, src }))
 const say = (sel, msg = '', warn = false) => { const el = $(sel); el.textContent = msg; el.classList.toggle('warn', warn) }
 
 function set(patch) {
@@ -181,14 +183,11 @@ $('#load').addEventListener('submit', e => { e.preventDefault(); loadPost($('#ur
 $('#url').addEventListener('paste', () => setTimeout(() => loadPost($('#url').value)))
 
 async function loadShot(src) {
-  const img = new Image()
-  img.src = src
   try {
-    await img.decode()
+    shot = await loadImage(src)
   } catch {
     return say('#status', `Could not open ${src.slice(1)}.`, true)
   }
-  shot = img
   post = null
   subject = { kind: 'image', src }
   persist()
@@ -235,15 +234,13 @@ let bgImage = null
 async function loadBg() {
   const src = state.bg
   if (!src) return void (bgImage = null)
-  const img = new Image()
-  img.src = src
   try {
-    await img.decode()
+    const img = await loadImage(src)
+    if (state.bg === src) bgImage = img
   } catch {
-    if (state.bg === src) { say('#status', `Backdrop ${src} is missing.`, true); set({ bg: '' }) }
-    return
+    // Keep the saved choice. The file can come back, for example after a dev-server restart.
+    if (state.bg === src) { bgImage = null; say('#status', `Backdrop ${src} is missing. The gradient shows until it is back.`, true) }
   }
-  if (state.bg === src) bgImage = img
 }
 
 // dir is 'backdrops' or 'shots'. Returns the saved path, or nothing on failure.
