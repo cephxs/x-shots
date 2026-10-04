@@ -180,7 +180,7 @@ async function loadPost(input) {
   }
 }
 $('#load').addEventListener('submit', e => { e.preventDefault(); loadPost($('#url').value) })
-$('#url').addEventListener('paste', () => setTimeout(() => loadPost($('#url').value)))
+$('#url').addEventListener('paste', e => { if (!firstImage(e.clipboardData.files)) setTimeout(() => loadPost($('#url').value)) })
 
 async function loadShot(src) {
   try {
@@ -287,10 +287,11 @@ for (const [zone, add] of [[stage, addShot], [$('#backdrops'), addBackdrop]]) {
     if (f) add(f)
   })
 }
+// A pasted image becomes the subject wherever the focus is, the link field included.
 document.addEventListener('paste', e => {
-  if (e.target.closest?.('input')) return
   const f = firstImage(e.clipboardData.files)
-  if (f) return addShot(f)
+  if (f) { e.preventDefault(); return addShot(f) }
+  if (e.target.closest?.('input')) return
   const text = e.clipboardData.getData('text')
   if (parseId(text)) { $('#url').value = text; loadPost(text) }
 })

@@ -14,7 +14,7 @@ Open http://localhost:5190. Use Chrome, Edge or Firefox. Safari's canvas does no
 ## Use
 
 - Paste an X post link in the top field. Pasting anywhere on the page also works.
-- To frame an image instead of a post, paste it anywhere, drop it on the preview, or click **Image**. Images go to `shots/`.
+- To frame an image instead of a post, paste it anywhere (the link field too), drop it on the preview, or click **Image**. Images go to `shots/`.
 - To add a backdrop, drop an image on the Backdrop rail or click its **+** tile. Backdrops go to `backdrops/`.
 - While an image is the subject, the post-only controls (theme, text size, padding, show and count toggles) are off.
 - Drag the card on the preview to move it. It snaps to the centre.
