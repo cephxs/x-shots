@@ -1,4 +1,6 @@
 import { domToCanvas } from 'modern-screenshot'
+import { mountSlider } from 'dialkit/vanilla'
+import 'dialkit/vanilla/styles.css'
 import { parseId, fetchPost, cardHTML, esc } from './post.js'
 import { mountDials } from './dials.js'
 // The Default Template look is the default for every control. bg '' means gradient.
@@ -67,7 +69,6 @@ const PANEL = [
   ]],
 ]
 const CONTROLS = PANEL.flatMap(([, items]) => items)
-const RANGES = Object.fromEntries(CONTROLS.filter(c => c.type === 'range').map(c => [c.key, c]))
 
 const $ = s => document.querySelector(s)
 const stage = $('#stage')
@@ -107,7 +108,7 @@ function controlHTML(c) {
   const row = inner => `<div class="row" data-row="${c.key}">${inner}</div>`
   switch (c.type) {
     case 'range':
-      return row(`${lab}<input type="range" id="c-${c.key}" data-key="${c.key}" min="${c.min}" max="${c.max}" step="1"><input class="num" type="number" data-key="${c.key}" min="${c.min}" max="${c.max}" step="1" aria-label="${c.label}"><span class="unit">${c.unit}</span>`)
+      return `<div class="row" data-row="${c.key}" data-reset="${c.key}" title="Double-click to reset"><div class="dialkit-root slider" data-slider="${c.key}"></div></div>`
     case 'color':
       return row(`${lab}<input type="color" id="c-${c.key}" data-key="${c.key}"><span class="hex" data-hex="${c.key}"></span>`)
     case 'seg':
@@ -119,6 +120,12 @@ function controlHTML(c) {
   }
 }
 $('#controls').innerHTML = PANEL.map(([title, items]) => `<details class="sec" open><summary>${title}</summary>${items.map(controlHTML).join('')}</details>`).join('')
+
+// Sliders are DialKit's own: label inside the bar, value on the right, drag anywhere on it.
+const sliders = Object.fromEntries(CONTROLS.filter(c => c.type === 'range').map(c => {
+  const props = { label: c.label, value: state[c.key], min: c.min, max: c.max, step: 1, unit: c.unit, onChange: v => set({ [c.key]: v }) }
+  return [c.key, { props, ui: mountSlider($(`[data-slider="${c.key}"]`), props) }]
+}))
 
 const dials = mountDials({
   panel: PANEL,
@@ -135,9 +142,9 @@ function syncControls() {
   for (const el of document.querySelectorAll('[data-key]')) {
     const v = state[el.dataset.key]
     if (el.tagName === 'BUTTON') el.setAttribute('aria-pressed', 'toggle' in el.dataset ? !!v : el.dataset.value === String(v))
-    else if (el.type !== 'number' || el !== document.activeElement) el.value = v
-    if (el.type === 'range') el.style.setProperty('--p', `${((v - el.min) / (el.max - el.min)) * 100}%`)
+    else el.value = v
   }
+  for (const [key, s] of Object.entries(sliders)) if (s.props.value !== state[key]) s.ui.update((s.props = { ...s.props, value: state[key] }))
   for (const el of document.querySelectorAll('[data-hex]')) el.textContent = state[el.dataset.hex]
   for (const c of CONTROLS) if (c.when) $(`[data-row="${c.key ?? c.label}"]`).inert = !c.when(state)
   for (const t of document.querySelectorAll('.tile[data-bg]')) t.setAttribute('aria-pressed', t.dataset.bg === state.bg)
@@ -146,15 +153,9 @@ function syncControls() {
 }
 
 document.addEventListener('input', e => {
-  const el = e.target
-  const key = el.dataset?.key
-  if (!key) return
-  if (el.type === 'color') return set({ [key]: el.value })
-  const c = RANGES[key]
-  const v = Number(el.value)
-  if (c && el.value !== '' && Number.isFinite(v)) set({ [key]: Math.min(c.max, Math.max(c.min, v)) })
+  const key = e.target.dataset?.key
+  if (key && e.target.type === 'color') set({ [key]: e.target.value })
 })
-document.addEventListener('focusout', () => setTimeout(syncControls)) // show the clamped value after typing
 document.addEventListener('dblclick', e => {
   const key = e.target.closest('[data-reset]')?.dataset.reset
   if (key) set({ [key]: DEFAULTS[key] })

@@ -66,30 +66,12 @@
   .sec:not([open]) > summary::after { content: "+" }
   .sec:not([open]) { padding-bottom: 4px }
 
-  .row { display: flex; align-items: center; gap: 10px; min-height: 30px }
+  /* Row rhythm from DialKit: 36px rows, 6px apart, labels inset 10px to line up with slider labels */
+  .sec > :not(summary) + :not(summary) { margin-top: 6px }
+  .row { display: flex; align-items: center; gap: 10px; min-height: 36px }
   .row[inert] { opacity: 0.35 }
-  .lab { width: 78px; flex: none; color: var(--ui-sec); font-size: 12px; user-select: none; cursor: default }
-  .unit { width: 16px; flex: none; color: var(--ui-sec); font-size: 11px }
-  .num {
-    width: 38px; flex: none; padding: 2px 0; border: 0; border-radius: 4px; background: none; text-align: right;
-    font-variant-numeric: tabular-nums; -moz-appearance: textfield;
-  }
-  .num:focus { background: var(--ui-raise) }
-  .num::-webkit-inner-spin-button, .num::-webkit-outer-spin-button { appearance: none; margin: 0 }
-
-  input[type="range"] { appearance: none; flex: 1; min-width: 0; height: 20px; margin: 0; background: none; cursor: pointer }
-  input[type="range"]::-webkit-slider-runnable-track {
-    height: 3px; border-radius: 2px;
-    background: linear-gradient(to right, #c8c8cc var(--p, 0%), var(--ui-raise-2) var(--p, 0%));
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    appearance: none; width: 12px; height: 12px; margin-top: -4.5px; border-radius: 50%; background: #fff;
-    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
-  }
-  input[type="range"]::-moz-range-track { height: 3px; border-radius: 2px; background: var(--ui-raise-2) }
-  input[type="range"]::-moz-range-progress { height: 3px; border-radius: 2px; background: #c8c8cc }
-  input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff }
-
+  .lab { width: 88px; flex: none; padding-left: 10px; color: var(--ui-sec); font-size: 12px; user-select: none; cursor: default }
+  .slider { flex: 1; min-width: 0 }
   input[type="color"] { appearance: none; width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; flex: none }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 0 }
   input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 6px; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12) }
